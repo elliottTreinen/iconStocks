@@ -61,7 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: ListView.builder(
-          itemExtent: 110,
+          itemExtent: 300,
           itemBuilder: (context, index){
             //Simulating infinite content for the builder to meet the
             //"infinite scrolling" requirement

@@ -27,7 +27,6 @@ initStocks(){
 }
 
 updateMarket(){
-  print("UPDATING MARKET...");
   for(int i = 0; i < stocks.length; i++){
     stocks[i].updatePrice();
   }
@@ -43,6 +42,7 @@ class IconStock{
   int owned;
   bool liked;
   _StockCardState card;
+  Color indicatorColor = Colors.grey;
 
   IconStock(IconData iconData){
     icon = iconData;
@@ -55,11 +55,24 @@ class IconStock{
   updatePrice(){
     double percent = (chance(.1) ? .5 : .1);
     double maxChange = price * percent;
-    price = min(9999, max(1, price + (maxChange * (rng.nextDouble() * 2 - 1)))).ceil();
+    double change = maxChange * (rng.nextDouble() * 2 - 1);
+    price = min(9999, max(1, price + change)).ceil();
+    indicatorColor = (change > 0 ? Colors.green[900] : (change < 0 ? Colors.red[900] : Colors.grey));
+
     if(card != null) {
       card.updateState();
     }
   }
+}
+
+class HistoryPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // TODO: draw something with canvas
+  }
+
+  @override
+  bool shouldRepaint(HistoryPainter oldDelegate) => false;
 }
 
 class StockCard extends StatefulWidget {
@@ -97,72 +110,101 @@ class _StockCardState extends State<StockCard> {
   Widget build(BuildContext context) {
     return Container(
         margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        height: 110,
+        height: 300,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             //FIRST SECTION (ICON AND OWNED COUNTER)
             Expanded(
               flex: 8,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.only(topLeft: Radius.circular(10), bottomLeft: Radius.circular(10)),
-                  color: Colors.white,
-                ),
-                height: double.infinity,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
 
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
-                  Icon(
-                    widget.stock.icon,
-                    color: Colors.grey[900],
-                    size: 70.0,
+                  Expanded(
+                    flex: 8,
+                    child: Container(
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.only(topLeft: Radius.circular(10)),
+                        color: Colors.white,
+                      ),
+                      child: Icon(
+                        widget.stock.icon,
+                        color: Colors.grey[900],
+                        size: 150.0,
+                      ),
+                    ),
                   ),
 
-                  //Shares owned
-                  Container(
-                    height: 50,
+                //Shares owned
+                Expanded(
+                    flex: 2,
+                  child: Container(
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(10)) ,
+                      borderRadius: BorderRadius.only(bottomLeft: Radius.circular(10)),
                       color: Colors.black,
                     ),
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          style: TextStyle(),
-                          children: <TextSpan>[
-                            TextSpan(text: widget.stock.owned.toString(), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 30, color: Colors.white, height: 1)),
-                            TextSpan(text: '\nOWNED', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 10, color: Colors.white, height: .8)),
-                          ],
-                        ),
-                      ),
+                      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: <Widget>[
+                            Text(widget.stock.owned.toString(), style: TextStyle(fontWeight: FontWeight.w500, fontSize: 40, color: Colors.white, height: 1), textAlign: TextAlign.right),
+                            Text(' shares\n owned', style: TextStyle(fontWeight: FontWeight.w600, fontStyle: FontStyle.italic, fontSize: 12, color: Colors.grey[400]), textAlign: TextAlign.left),
+                        ],
+                      )
                     ),
-                  )]
-                ),
+                  )
+                )]
               ),
             ),
 
             //SECOND SECTION (PRICE)
             Expanded(
-              flex: 6,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey,
-                ),
-                height: double.infinity,
-                alignment: Alignment.center,
-                child: Text.rich(
-                  TextSpan(
-                    children: <TextSpan>[
-                      TextSpan(text: widget.stock.price.toString(), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 40)),
-                      TextSpan(text: 'bits', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 20, color: Colors.white)),
-                    ],
-                  )
-                ),
+              flex: 8,
+              child: Column(
+                children: <Widget>[
+                  Expanded(
+                    flex: 8,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                      ),
+                      height: double.infinity,
+                      alignment: Alignment.center,
+                    )
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                        decoration: BoxDecoration(
+                          color: widget.stock.indicatorColor,
+                        ),
+                        height: double.infinity,
+                        alignment: Alignment.centerRight,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                          ),
+                          margin: EdgeInsets.symmetric(vertical: 5),
+                          alignment: Alignment.centerRight,
+                          child: Padding(
+                          padding: EdgeInsets.only(right: 10),
+                          child: Text.rich(
+                            TextSpan(
+                              children: <TextSpan>[
+                                TextSpan(text: widget.stock.price.toString(), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 32, color: Colors.white)),
+                                TextSpan(text: ' bits', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 18, color: Colors.white)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -178,13 +220,14 @@ class _StockCardState extends State<StockCard> {
 
                 child: IconButton(
                   icon: Icon((widget.stock.liked ? Icons.favorite : Icons.favorite_outline), color: (widget.stock.liked ? Colors.red : Colors.black26)),
-                  iconSize: 40,
+                  iconSize: 48,
+                  alignment: Alignment.topCenter,
                   onPressed: toggleLike
                 ),
               ),
             ),
-          ]
-        )
+          ],
+        ),
     );
   }
 }
