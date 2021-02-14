@@ -1,16 +1,32 @@
+import 'dart:core';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'stock_widgets.dart';
 
+//this seems like a really inefficient way to gather this data, but there's
+//no way to iterate through the Icons class and I want to hand pick which
+//ones are used so it's what I'm going with.
+
+List<StockCard> cards = [];
+
 void main() {
+  initStocks();
+  cards.length = stocks.length;
+  for(int i = 0; i < stocks.length; i++){
+    cards[i] = StockCard(stock: stocks[i]);
+  }
+  new Timer.periodic(Duration(seconds:5), (timer) { updateMarket(); });
   runApp(MyApp());
 }
+
+
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Icon Stocks',
       theme: ThemeData(
         primaryColor: Colors.grey[900],
         floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -34,13 +50,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,24 +60,14 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            StockCard(icon: Icons.wb_sunny, price: 50, owned: 0),
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
+        child: ListView.builder(
+          itemExtent: 110,
+          itemBuilder: (context, index){
+            //Simulating infinite content for the builder to meet the
+            //"infinite scrolling" requirement
+            return cards[index % cards.length];
+          },
+        )
       ),
     );
   }
