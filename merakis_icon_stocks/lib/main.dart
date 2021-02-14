@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'stock_widgets.dart';
 
 void main() {
   runApp(MyApp());
@@ -53,6 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            StockCard(icon: Icons.wb_sunny, price: 50, owned: 0),
             Text(
               'You have pushed the button this many times:',
             ),
