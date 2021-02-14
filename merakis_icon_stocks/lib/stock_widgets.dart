@@ -1,5 +1,7 @@
+import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'stock_page.dart';
 
 Random rng = new Random();
 
@@ -19,11 +21,21 @@ final List<IconData> icons = [Icons.accessibility_new, Icons.accessible, Icons.a
 
 final List<IconStock> stocks = [];
 
+final barPainter = Paint();
+final barPainterRed= Paint();
+final barPainterGreen = Paint();
+
+int balance;
+
 initStocks(){
   //whole app resets on start, no saving yet
+  balance = 100;
   for(int i = 0; i < icons.length; i++){
     stocks.add(new IconStock(icons[i]));
   }
+
+  barPainter.style = PaintingStyle.fill;
+  barPainter.color = Colors.white;
 }
 
 updateMarket(){
@@ -37,12 +49,16 @@ bool chance(double prob){
 }
 
 class IconStock{
+  final int memory = 20;
   IconData icon;
   int price;
   int owned;
   bool liked;
+  bool redraw;
   _StockCardState card;
   Color indicatorColor = Colors.grey;
+  Queue<int> recentHistory = Queue();
+  HistoryPainter painter;
 
   IconStock(IconData iconData){
     icon = iconData;
@@ -50,6 +66,8 @@ class IconStock{
     owned = 0;
     liked = false;
     card = null;
+    redraw = false;
+    painter = HistoryPainter(stock: this);
   }
 
   updatePrice(){
@@ -59,6 +77,12 @@ class IconStock{
     price = min(9999, max(1, price + change)).ceil();
     indicatorColor = (change > 0 ? Colors.green[900] : (change < 0 ? Colors.red[900] : Colors.grey));
 
+    recentHistory.addFirst(price);
+    if(recentHistory.length > memory){
+      recentHistory.removeLast();
+    }
+    redraw = true;
+
     if(card != null) {
       card.updateState();
     }
@@ -66,13 +90,38 @@ class IconStock{
 }
 
 class HistoryPainter extends CustomPainter {
+  HistoryPainter({Key key, this.stock});
+  final IconStock stock;
+
   @override
   void paint(Canvas canvas, Size size) {
-    // TODO: draw something with canvas
+    if(stock != null) {
+      print("DRAW");
+      int maxPrice = stock.recentHistory.reduce(max);
+      double barSpace = (size.width - 10) / (stock.memory - 1);
+      List<int> priceList = stock.recentHistory.toList();
+      for(int i = 0; i < priceList.length - 1; i++){
+        double heightPercent = priceList[priceList.length - 2 - i] / maxPrice;
+        double height = (size.height - 10) * heightPercent;
+        barPainter.color = (priceList[priceList.length - 2 - i] < priceList[priceList.length - 1 - i] ? Colors.red[700] : Colors.green[700]);
+        //this line is a bit much, but I'm on a time budget
+        canvas.drawRect(Rect.fromLTWH(5 + barSpace * .1 + barSpace * i, 10 + (size.height - 10 - height), barSpace * .8, height), barPainter);
+      }
+    }
   }
 
   @override
-  bool shouldRepaint(HistoryPainter oldDelegate) => false;
+  bool shouldRepaint(HistoryPainter oldDelegate){
+    if(stock == null) {
+      return false;
+    }
+
+    if(stock.redraw){
+      stock.redraw = false;
+      return true;
+    }
+    return false;
+  }
 }
 
 class StockCard extends StatefulWidget {
@@ -108,60 +157,68 @@ class _StockCardState extends State<StockCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: (){
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => StockPage(stock: widget.stock)),
+        );
+      },
+      child: Container(
         margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        height: 300,
+        height: 250,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             //FIRST SECTION (ICON AND OWNED COUNTER)
-            Expanded(
-              flex: 8,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: <Widget>[
+              Expanded(
+                flex: 8,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: <Widget>[
 
+                    Expanded(
+                      flex: 8,
+                      child: Container(
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.only(topLeft: Radius.circular(10)),
+                          color: Colors.white,
+                        ),
+                        child: Icon(
+                          widget.stock.icon,
+                          color: Colors.grey[900],
+                          size: 150.0,
+                        ),
+                      ),
+                    ),
+
+                  //Shares owned
                   Expanded(
-                    flex: 8,
+                      flex: 2,
                     child: Container(
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.only(topLeft: Radius.circular(10)),
-                        color: Colors.white,
+                        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(10)),
+                        color: Colors.black,
                       ),
-                      child: Icon(
-                        widget.stock.icon,
-                        color: Colors.grey[900],
-                        size: 150.0,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: <Widget>[
+                              Text(widget.stock.owned.toString(), style: TextStyle(fontWeight: FontWeight.w500, fontSize: 25, color: Colors.white, height: 1), textAlign: TextAlign.right),
+                              Text(' shares\n owned', style: TextStyle(fontWeight: FontWeight.w600, fontStyle: FontStyle.italic, fontSize: 9, color: Colors.grey[400]), textAlign: TextAlign.left),
+                          ],
+                        )
                       ),
-                    ),
-                  ),
-
-                //Shares owned
-                Expanded(
-                    flex: 2,
-                  child: Container(
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.only(bottomLeft: Radius.circular(10)),
-                      color: Colors.black,
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: <Widget>[
-                            Text(widget.stock.owned.toString(), style: TextStyle(fontWeight: FontWeight.w500, fontSize: 40, color: Colors.white, height: 1), textAlign: TextAlign.right),
-                            Text(' shares\n owned', style: TextStyle(fontWeight: FontWeight.w600, fontStyle: FontStyle.italic, fontSize: 12, color: Colors.grey[400]), textAlign: TextAlign.left),
-                        ],
-                      )
-                    ),
-                  )
-                )]
+                    )
+                  )]
+                ),
               ),
-            ),
 
-            //SECOND SECTION (PRICE)
+
+            //SECOND SECTION (GRAPH AND PRICE)
             Expanded(
               flex: 8,
               child: Column(
@@ -172,8 +229,14 @@ class _StockCardState extends State<StockCard> {
                       decoration: BoxDecoration(
                         color: Colors.black,
                       ),
+                      width: double.infinity,
                       height: double.infinity,
                       alignment: Alignment.center,
+                      child: LayoutBuilder(
+                        builder: (BuildContext context, BoxConstraints constraints) =>
+                          CustomPaint(painter: widget.stock.painter, size: Size(constraints.maxWidth, constraints.maxHeight)),
+
+                      )
                     )
                   ),
                   Expanded(
@@ -220,14 +283,15 @@ class _StockCardState extends State<StockCard> {
 
                 child: IconButton(
                   icon: Icon((widget.stock.liked ? Icons.favorite : Icons.favorite_outline), color: (widget.stock.liked ? Colors.red : Colors.black26)),
-                  iconSize: 48,
+                  iconSize: 45,
                   alignment: Alignment.topCenter,
                   onPressed: toggleLike
                 ),
               ),
             ),
           ],
-        ),
+        )
+      ),
     );
   }
 }
