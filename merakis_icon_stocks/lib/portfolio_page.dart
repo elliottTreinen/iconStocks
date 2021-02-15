@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-class PortfolioScreen extends StatefulWidget {
+class PortfolioPage extends StatefulWidget {
   @override
-  _PortfolioScreenState createState() => _PortfolioScreenState();
+  _PortfolioPageState createState() => _PortfolioPageState();
 }
 
-class _PortfolioScreenState extends State<PortfolioScreen> {
+class _PortfolioPageState extends State<PortfolioPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
